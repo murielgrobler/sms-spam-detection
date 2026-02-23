@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+.pytest_cache/
+
+# Virtual environments
+venv/
+.venv/
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Data & artifacts (generated)
+data/processed/
+data/splits/
+artifacts/
+reports/
+
+# Local secrets
+.env
+*.pem
+*.key

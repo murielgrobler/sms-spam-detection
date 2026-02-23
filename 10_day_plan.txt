@@ -1,0 +1,192 @@
+10-Day Plan (SMS Spam → Security “Threat Detection + Triage” System)
+The project (simple, end-to-end, interview-ready)
+“Message Threat Detection & Triage Service”
+
+Classic ML: TF‑IDF + Logistic Regression spam/phishing classifier
+API (FastAPI):
+POST /score → risk score + label + model_version
+POST /tag → lightweight tags (rules/regex) like link_present, urgency, money, account_action
+POST /feedback → store analyst override labels (feedback loop)
+Pipelines: preprocess → train → eval → package artifact
+AWS deployment: Docker → ECR → ECS Fargate (plus SageMaker thin slice later)
+Monitoring: CloudWatch logs/metrics + drift checks on score distribution
+LangSmith day: add an LLM “triage summary” chain and trace/eval it
+
+Day 0 (setup day): dataset + repo + AWS safety rails
+A) Dataset (SMS Spam Collection)
+Get it from UCI:
+Search: “UCI SMS Spam Collection dataset”
+Download the zip that contains SMSSpamCollection
+Put it in your repo under something like:
+data/raw/SMSSpamCollection
+Create a tiny processing script idea:
+reads the file (tab-separated: label \t text)
+outputs data/processed/sms_spam.csv
+Important: don’t commit raw data if you don’t want to—commit a small sample + a script that downloads it.
+B) Local dev environment (fast)
+Create a new repo (or a new folder) for this project.
+Set up:
+Python venv
+requirements.txt (FastAPI, uvicorn, scikit-learn, pandas, joblib, pytest, etc.)
+A Makefile or simple scripts/ commands (optional but nice)
+C) AWS account + cost controls (must-do)
+Create AWS account
+Set AWS Budget:
+budget: $100
+alerts: $50 / $80 / $100
+Pick one region (e.g. us-east-1) and stick to it.
+Tagging convention:
+project=sms-threat-demo
+owner=muriel
+expiry=YYYY-MM-DD
+Decide your “shutdown habit”:
+ECS service scaled to 0 overnight (unless you need it live)
+SageMaker endpoints always deleted the same day
+D) AWS technical prerequisites (keep minimal)
+Install/verify locally:
+AWS CLI
+Docker
+In AWS:
+Create an ECR repository (name like sms-threat-demo)
+Create an IAM user/role setup you can use for pushing to ECR (don’t overcomplicate; just enough permissions)
+Definition of done for Day 0
+
+Dataset downloaded + readable
+AWS budget alerts set
+ECR repo exists
+You can run docker build locally successfully (even before deployment)
+
+Day 1: Problem framing + metrics (security-style)
+Goal: be able to explain tradeoffs like a security ML engineer.
+Define:
+“Threat” = spam/phishing-like messages
+Primary metric: Precision/Recall (security often prefers high recall at acceptable precision or vice versa depending on triage capacity)
+Pick a target like: “Recall ≥ 0.90 at Precision ≥ 0.80” (adjust after baseline)
+Deliverables
+
+README.md: problem statement + metrics + what false positives/negatives mean
+Day 2: Baseline model training (TF‑IDF + Logistic Regression)
+Split train/val/test
+Train pipeline:
+TfidfVectorizer
+LogisticRegression (or linear SVM + calibrated probabilities)
+Save:
+model artifact with joblib
+vectorizer inside the pipeline (one object)
+Deliverables
+
+training/train.py
+artifacts/model.joblib
+reports/eval_report.md with metrics + confusion matrix
+Day 3: Feature engineering + “tagging” layer (fast heuristics)
+You’ll build “tags” as a separate deterministic layer (super fast, very production-believable).
+
+Example tags:
+
+link_present (regex for http|www)
+money_amount (£|\$|\d+\s?(usd|dollars))
+urgency (“urgent”, “now”, “immediately”)
+account_action (“verify”, “password”, “login”, “account”)
+phone_number_present
+Deliverables
+
+app/tagging.py returning {tags: [...], reasons: {...}}
+Add it to /tag endpoint later
+Day 4: FastAPI service + tests (production shape)
+Endpoints:
+
+POST /score:
+returns risk_score, is_threat, model_version
+POST /tag:
+returns tags + reasons
+POST /feedback:
+stores {message_id, text, true_label} to a local sqlite or simple file (keep it easy)
+Add:
+
+structured JSON logging
+pytest smoke tests
+Deliverables
+
+app/main.py
+tests/test_api.py
+local run: uvicorn app.main:app
+Day 5: Dockerize + ECS Fargate deploy (core new-job readiness)
+Dockerize FastAPI
+Push image to ECR
+ECS task definition + service
+Keep networking simple; add ALB only if necessary
+Deliverables
+
+Public endpoint (or at least reachable endpoint)
+deploy/deploy_notes.md with exact steps and rollback notes
+Day 6: CI/CD (GitHub Actions)
+Pipeline:
+
+run tests
+build Docker image
+push to ECR on merge to main Optional:
+manual deploy trigger
+Deliverables
+
+.github/workflows/ci.yml (or ci_cd.yml)
+passing green build
+Day 7: Versioning with MLflow (thin but credible)
+Track:
+dataset hash/version
+vectorizer params
+model params
+metrics
+Register a model version
+Make your service load model by MODEL_VERSION env var (even if it maps to a local artifact in the container for now—fine for a demo)
+Deliverables
+
+mlflow_notes.md
+“How to rollback model” section in README
+Day 8: Monitoring + drift + feedback loop (security flavor)
+Service monitoring:
+
+latency
+error rate
+request volume
+Model monitoring:
+
+drift of risk_score distribution (PSI)
+drift in top TF‑IDF features frequency (optional—skip if time)
+Feedback loop:
+
+/feedback writes a record you can later use to retrain (Day 9/10 optional)
+Deliverables
+
+monitoring.md describing:
+what you monitor, why
+how you’d respond to drift
+how feedback becomes training data
+Day 9: SageMaker thin slice (optional but recommended)
+Since this is text ML, SageMaker is less “natural” than for tabular, but still doable:
+
+Deploy the model as a SageMaker endpoint briefly
+Test, document, delete
+Deliverable
+
+ecs_vs_sagemaker.md with a clear decision framework
+(If time is tight, you can swap this day for more monitoring/pipeline polish.)
+
+Day 10: LangSmith day (LLM triage summary + eval)
+Add an LLM endpoint:
+
+POST /triage-summary:
+input: message text + model score + tags
+output: short summary + recommended action (“block”, “send to review”, “allow”) Instrument with LangSmith:
+traces
+dataset of 10–20 messages
+compare two prompt versions
+Deliverables
+
+LangSmith traces + a short eval report
+langsmith_notes.md (what you learned, how you’d use it in prod)
+Daily shutdown checklist (do this every evening)
+ECS: scale service to 0 if not needed overnight
+SageMaker: delete endpoints / stop notebooks
+Check billing dashboard + budget alerts
+Status
+Complete: rewritten 10-day plan optimized for the SMS Spam simplest end-to-end project, including Day 0 dataset + AWS setup.
