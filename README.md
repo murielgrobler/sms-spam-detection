@@ -34,12 +34,30 @@ This repo follows a 10-day ML engineering crash course plan to build an end-to-e
 - **Architecture**: sklearn Pipeline with TfidfVectorizer → LogisticRegression
 - **Features**: Unigrams + bigrams, max 50k features, L2 regularization (C=4.0)
 
-## Day 0-1 Status
+**Enhanced Model**: TF-IDF + Heuristic Features + Random Forest
+- **Performance**: Test F1=0.928, Recall=86.6% (slightly lower than baseline)
+- **Architecture**: Custom pipeline combining TF-IDF with 19 engineered features
+- **Status**: Baseline remains superior for this dataset
 
-- **AWS**: CLI configured, ECR repo created, Docker working
+## Feature Engineering
+
+**Heuristic Features** (19 total):
+- **Link Detection**: URL patterns, link keywords (`link_present`, `link_keyword`, `link_any`)
+- **Financial Content**: Money amounts, financial keywords, prize references (`money_amount`, `financial_keyword`, `prize_keyword`)
+- **Urgency Indicators**: Time pressure, urgency keywords, exclamation marks (`urgency_keyword`, `time_pressure`, `multiple_exclamations`)
+- **Account Security**: Phishing patterns, security keywords, institution mentions (`account_action`, `phishing_pattern`, `institution_mention`)
+- **Meta Features**: Text length, caps usage, phone numbers (`text_length`, `all_caps_words`, `phone_number`)
+
+**Key Insight**: While heuristic features are interpretable and production-ready, they didn't significantly improve performance over the strong TF-IDF baseline on this dataset.
+
+## Project Status
+
+- **AWS**: CLI configured, ECR repo created, Docker working, S3 model storage
 - **Data**: processed CSV generated (5,572 messages: 87% ham, 13% spam)
 - **Splits**: leakage-safe train/val/test splits created (grouped by exact text)
-- **Baseline**: TF-IDF + Logistic Regression trained and evaluated
+- **Baseline**: TF-IDF + Logistic Regression trained and evaluated (best performer)
+- **Feature Engineering**: 19 heuristic features implemented and tested
+- **Enhanced Model**: Random Forest + combined features (baseline still superior)
 
 ## Setup
 
@@ -68,9 +86,11 @@ Create splits under `data/splits/`:
 python scripts/make_splits.py
 ```
 
-## Baseline model
+## Model Training
 
-Train a TF-IDF + Logistic Regression baseline and write artifacts:
+### Baseline Model
+
+Train a TF-IDF + Logistic Regression baseline:
 
 ```bash
 python training/train.py
@@ -79,3 +99,35 @@ python training/train.py
 Outputs:
 - `artifacts/model.joblib`
 - `reports/metrics.json`
+
+### Enhanced Model
+
+Train Random Forest with TF-IDF + heuristic features:
+
+```bash
+python training/train_enhanced.py
+```
+
+Outputs:
+- `artifacts/enhanced_model.joblib`
+- `reports/enhanced_metrics.json`
+
+**S3 Storage**: `s3://sms-threat-demo-models-20260223/models/enhanced_model.joblib`
+
+**Note**: Additional models from Day 1 comparison are also stored in S3:
+- Logistic Regression: `s3://sms-threat-demo-models-20260223/models/logistic-regression/v1.0/model.joblib`
+- Random Forest: `s3://sms-threat-demo-models-20260223/models/random-forest/v1.0/model.joblib`
+
+### Model Comparison
+
+Compare baseline vs enhanced models:
+
+```bash
+python training/compare_models.py
+```
+
+Outputs:
+- `artifacts/logistic_regression_model.joblib`
+- `artifacts/random_forest_model.joblib`
+- `reports/model_comparison.json`
+- `reports/model_comparison.md`

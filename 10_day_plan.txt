@@ -130,19 +130,40 @@ Deliverables
 
 .github/workflows/ci.yml (or ci_cd.yml)
 passing green build
-Day 7: Versioning with MLflow (thin but credible)
+Day 7: Feature Store Implementation (production ML patterns)
+Build a lightweight feature store for heuristic features:
+
+Core components:
+- Feature computation service (batch + real-time)
+- Feature storage (Redis/DynamoDB for online, S3 for offline)
+- Feature serving API with caching
+- Feature versioning and lineage
+
+Implementation:
+- Refactor heuristic features to be computed separately
+- Add /compute-features endpoint
+- Cache features by message hash
+- Batch feature computation for training data
+- Feature drift monitoring
+
+Deliverables:
+features/store.py (feature store client)
+features/compute.py (batch feature computation)
+feature_store_design.md (architecture decisions)
+
+Day 8: Versioning with MLflow (thin but credible)
 Track:
 dataset hash/version
 vectorizer params
-model params
+model params + feature store version
 metrics
 Register a model version
 Make your service load model by MODEL_VERSION env var (even if it maps to a local artifact in the container for now—fine for a demo)
 Deliverables
 
 mlflow_notes.md
-“How to rollback model” section in README
-Day 8: Monitoring + drift + feedback loop (security flavor)
+"How to rollback model" section in README
+Day 9: Monitoring + drift + feedback loop (security flavor)
 Service monitoring:
 
 latency
@@ -161,7 +182,7 @@ monitoring.md describing:
 what you monitor, why
 how you’d respond to drift
 how feedback becomes training data
-Day 9: SageMaker thin slice (optional but recommended)
+Day 10: SageMaker thin slice (optional but recommended)
 Since this is text ML, SageMaker is less “natural” than for tabular, but still doable:
 
 Deploy the model as a SageMaker endpoint briefly
@@ -171,7 +192,7 @@ Deliverable
 ecs_vs_sagemaker.md with a clear decision framework
 (If time is tight, you can swap this day for more monitoring/pipeline polish.)
 
-Day 10: LangSmith day (LLM triage summary + eval)
+Day 11: LangSmith day (LLM triage summary + eval)
 Add an LLM endpoint:
 
 POST /triage-summary:
