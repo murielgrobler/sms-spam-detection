@@ -8,6 +8,7 @@ spam detection performance.
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import List, Tuple
 
@@ -15,13 +16,12 @@ import joblib
 import numpy as np
 import pandas as pd
 from scipy.sparse import hstack, csr_matrix
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
 
-# Import shared functions from baseline training
-import sys
-sys.path.append('.')
-from training.train import load_xy, evaluate
+# Import feature extraction
+sys.path.append(str(Path(__file__).parent.parent))
 from features.tagging import extract_all_features, get_feature_names
 
 
@@ -115,9 +115,6 @@ class EnhancedSpamPipeline:
         return self.classifier.predict_proba(combined_features)
 
 
-# No longer needed - feature extraction is now inside the model
-
-
 def create_enhanced_pipeline(args) -> EnhancedSpamPipeline:
     """
     Create a pipeline that combines TF-IDF and heuristic features.
@@ -151,8 +148,6 @@ def evaluate_enhanced_model(model, texts, heuristic_features, y_true):
     y_pred = model.predict(texts, heuristic_features)
     y_pred_proba = model.predict_proba(texts, heuristic_features)[:, 1]
     
-    from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
-    
     return {
         "accuracy": accuracy_score(y_true, y_pred),
         "precision": precision_score(y_true, y_pred),
@@ -161,6 +156,14 @@ def evaluate_enhanced_model(model, texts, heuristic_features, y_true):
         "roc_auc": roc_auc_score(y_true, y_pred_proba),
         "confusion_matrix": confusion_matrix(y_true, y_pred).tolist(),
     }
+
+
+def load_xy(path: Path) -> tuple[list[str], list[int]]:
+    """Load X and y from CSV file."""
+    df = pd.read_csv(path)
+    x = df["text"].astype(str).tolist()
+    y = (df["label"].astype(str) == "spam").astype(int).tolist()
+    return x, y
 
 
 def extract_heuristic_features_batch(texts):
@@ -229,9 +232,10 @@ def main() -> None:
     # Save model with metadata
     args.artifact_path.parent.mkdir(parents=True, exist_ok=True)
     
-    # Create model package with metadata
+    # Save individual components instead of custom class to avoid pickle issues
     model_package = {
-        'model': model,
+        'tfidf_vectorizer': model.tfidf,
+        'classifier': model.classifier,
         'metadata': {
             'feature_names': get_feature_names(),
             'model_version': '1.0.0',

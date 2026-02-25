@@ -1,0 +1,12 @@
+# Development and testing dependencies
+# Include all production dependencies
+-r requirements.txt
+
+# Testing framework and HTTP client for API tests
+pytest>=8.0
+httpx>=0.25.0
+
+# Development tools (optional but recommended)
+black>=23.0          # Code formatting
+flake8>=6.0          # Linting
+mypy>=1.0            # Type checking

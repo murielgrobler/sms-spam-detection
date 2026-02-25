@@ -56,43 +56,31 @@ AWS budget alerts set
 ECR repo exists
 You can run docker build locally successfully (even before deployment)
 
-Day 1: Problem framing + metrics (security-style)
-Goal: be able to explain tradeoffs like a security ML engineer.
-Define:
-“Threat” = spam/phishing-like messages
-Primary metric: Precision/Recall (security often prefers high recall at acceptable precision or vice versa depending on triage capacity)
-Pick a target like: “Recall ≥ 0.90 at Precision ≥ 0.80” (adjust after baseline)
-Deliverables
+Day 1: Baseline model 
+TF-IDF + Logistic Regression pipeline:
+- Train/val/test splits with proper data leakage prevention
+- Model comparison framework (Logistic Regression vs Random Forest)
+- F1: 0.942 (best performer)
 
-README.md: problem statement + metrics + what false positives/negatives mean
-Day 2: Baseline model training (TF‑IDF + Logistic Regression)
-Split train/val/test
-Train pipeline:
-TfidfVectorizer
-LogisticRegression (or linear SVM + calibrated probabilities)
-Save:
-model artifact with joblib
-vectorizer inside the pipeline (one object)
-Deliverables
+Deliverables :
+- training/train.py, training/compare_models.py
+- artifacts/model.joblib (+ S3 storage)
+- reports/metrics.json, reports/model_comparison.json
 
-training/train.py
-artifacts/model.joblib
-reports/eval_report.md with metrics + confusion matrix
-Day 3: Feature engineering + “tagging” layer (fast heuristics)
-You’ll build “tags” as a separate deterministic layer (super fast, very production-believable).
+Day 2: Feature engineering + "tagging" layer 
+19 heuristic features for fast, interpretable spam detection:
+- Link detection, financial content, urgency indicators, account security, meta features
+- Enhanced Random Forest model combining TF-IDF + heuristic features (F1: 0.928)
+- Clean EnhancedSpamPipeline architecture with encapsulated feature extraction
 
-Example tags:
+Deliverables :
+- features/tagging.py (heuristic feature extraction module)
+- training/train_enhanced.py
+- artifacts/enhanced_model.joblib (+ S3 storage)
+- reports/enhanced_metrics.json, reports/feature_engineering_report.md
+- Updated README.md with comprehensive documentation
 
-link_present (regex for http|www)
-money_amount (£|\$|\d+\s?(usd|dollars))
-urgency (“urgent”, “now”, “immediately”)
-account_action (“verify”, “password”, “login”, “account”)
-phone_number_present
-Deliverables
-
-app/tagging.py returning {tags: [...], reasons: {...}}
-Add it to /tag endpoint later
-Day 4: FastAPI service + tests (production shape)
+Day 3: FastAPI service + tests (production shape)
 Endpoints:
 
 POST /score:
@@ -110,7 +98,7 @@ Deliverables
 app/main.py
 tests/test_api.py
 local run: uvicorn app.main:app
-Day 5: Dockerize + ECS Fargate deploy (core new-job readiness)
+Day 4: Dockerize + ECS Fargate deploy (core new-job readiness)
 Dockerize FastAPI
 Push image to ECR
 ECS task definition + service
@@ -119,7 +107,7 @@ Deliverables
 
 Public endpoint (or at least reachable endpoint)
 deploy/deploy_notes.md with exact steps and rollback notes
-Day 6: CI/CD (GitHub Actions)
+Day 5: CI/CD (GitHub Actions)
 Pipeline:
 
 run tests
@@ -130,7 +118,7 @@ Deliverables
 
 .github/workflows/ci.yml (or ci_cd.yml)
 passing green build
-Day 7: Feature Store Implementation (production ML patterns)
+Day 6: Feature Store Implementation (production ML patterns)
 Build a lightweight feature store for heuristic features:
 
 Core components:
@@ -151,7 +139,7 @@ features/store.py (feature store client)
 features/compute.py (batch feature computation)
 feature_store_design.md (architecture decisions)
 
-Day 8: Versioning with MLflow (thin but credible)
+Day 7: Versioning with MLflow (thin but credible)
 Track:
 dataset hash/version
 vectorizer params
@@ -163,7 +151,7 @@ Deliverables
 
 mlflow_notes.md
 "How to rollback model" section in README
-Day 9: Monitoring + drift + feedback loop (security flavor)
+Day 8: Monitoring + drift + feedback loop (security flavor)
 Service monitoring:
 
 latency
@@ -182,7 +170,7 @@ monitoring.md describing:
 what you monitor, why
 how you’d respond to drift
 how feedback becomes training data
-Day 10: SageMaker thin slice (optional but recommended)
+Day 9: SageMaker thin slice (optional but recommended)
 Since this is text ML, SageMaker is less “natural” than for tabular, but still doable:
 
 Deploy the model as a SageMaker endpoint briefly
@@ -192,7 +180,7 @@ Deliverable
 ecs_vs_sagemaker.md with a clear decision framework
 (If time is tight, you can swap this day for more monitoring/pipeline polish.)
 
-Day 11: LangSmith day (LLM triage summary + eval)
+Day 10: LangSmith day (LLM triage summary + eval)
 Add an LLM endpoint:
 
 POST /triage-summary:
@@ -210,4 +198,4 @@ ECS: scale service to 0 if not needed overnight
 SageMaker: delete endpoints / stop notebooks
 Check billing dashboard + budget alerts
 Status
-Complete: rewritten 10-day plan optimized for the SMS Spam simplest end-to-end project, including Day 0 dataset + AWS setup.
+Complete: Updated 10-day plan reflecting actual progress (Day 1 baseline, Day 2 feature engineering). Documentation will be maintained throughout the project rather than as a separate final day.
