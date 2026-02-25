@@ -47,22 +47,15 @@ class EnhancedSpamPipeline:
         self.classifier = classifier
         self.is_fitted = False
         
-    def _extract_heuristic_features(self, texts):
-        """Extract heuristic features from texts."""
-        feature_names = get_feature_names()
-        heuristic_features = []
+    def fit(self, texts, heuristic_features, y):
+        """
+        Fit the pipeline with texts and pre-computed heuristic features.
         
-        for text in texts:
-            features = extract_all_features(text)
-            feature_vector = [int(features[name]) for name in feature_names]
-            heuristic_features.append(feature_vector)
-        
-        return np.array(heuristic_features, dtype=np.float32)
-        
-    def fit(self, texts, y):
-        # Extract heuristic features
-        heuristic_features = self._extract_heuristic_features(texts)
-        
+        Args:
+            texts: List of text messages
+            heuristic_features: Pre-computed heuristic features matrix
+            y: Target labels
+        """
         # Fit TF-IDF on texts
         tfidf_features = self.tfidf.fit_transform(texts)
         
@@ -77,13 +70,17 @@ class EnhancedSpamPipeline:
         self.is_fitted = True
         return self
         
-    def predict(self, texts):
+    def predict(self, texts, heuristic_features):
+        """
+        Predict with texts and pre-computed heuristic features.
+        
+        Args:
+            texts: List of text messages
+            heuristic_features: Pre-computed heuristic features matrix
+        """
         if not self.is_fitted:
             raise ValueError("Pipeline must be fitted before prediction")
             
-        # Extract heuristic features
-        heuristic_features = self._extract_heuristic_features(texts)
-        
         # Transform TF-IDF features
         tfidf_features = self.tfidf.transform(texts)
         
@@ -95,13 +92,17 @@ class EnhancedSpamPipeline:
         
         return self.classifier.predict(combined_features)
         
-    def predict_proba(self, texts):
+    def predict_proba(self, texts, heuristic_features):
+        """
+        Predict probabilities with texts and pre-computed heuristic features.
+        
+        Args:
+            texts: List of text messages
+            heuristic_features: Pre-computed heuristic features matrix
+        """
         if not self.is_fitted:
             raise ValueError("Pipeline must be fitted before prediction")
             
-        # Extract heuristic features
-        heuristic_features = self._extract_heuristic_features(texts)
-        
         # Transform TF-IDF features
         tfidf_features = self.tfidf.transform(texts)
         
@@ -145,7 +146,34 @@ def create_enhanced_pipeline(args) -> EnhancedSpamPipeline:
     return EnhancedSpamPipeline(tfidf, classifier)
 
 
-# No longer needed - can use baseline evaluate function directly
+def evaluate_enhanced_model(model, texts, heuristic_features, y_true):
+    """Evaluate enhanced model with pre-computed heuristic features."""
+    y_pred = model.predict(texts, heuristic_features)
+    y_pred_proba = model.predict_proba(texts, heuristic_features)[:, 1]
+    
+    from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
+    
+    return {
+        "accuracy": accuracy_score(y_true, y_pred),
+        "precision": precision_score(y_true, y_pred),
+        "recall": recall_score(y_true, y_pred),
+        "f1": f1_score(y_true, y_pred),
+        "roc_auc": roc_auc_score(y_true, y_pred_proba),
+        "confusion_matrix": confusion_matrix(y_true, y_pred).tolist(),
+    }
+
+
+def extract_heuristic_features_batch(texts):
+    """Extract heuristic features for a batch of texts."""
+    feature_names = get_feature_names()
+    heuristic_features = []
+    
+    for text in texts:
+        features = extract_all_features(text)
+        feature_vector = [int(features[name]) for name in feature_names]
+        heuristic_features.append(feature_vector)
+    
+    return np.array(heuristic_features, dtype=np.float32)
 
 
 def main() -> None:
@@ -156,6 +184,11 @@ def main() -> None:
     x_val, y_val = load_xy(args.val)
     x_test, y_test = load_xy(args.test)
 
+    print("Extracting heuristic features...")
+    train_heuristic = extract_heuristic_features_batch(x_train)
+    val_heuristic = extract_heuristic_features_batch(x_val)
+    test_heuristic = extract_heuristic_features_batch(x_test)
+
     print(f"Training set: {len(x_train)} samples")
     print(f"Validation set: {len(x_val)} samples") 
     print(f"Test set: {len(x_test)} samples")
@@ -164,11 +197,11 @@ def main() -> None:
 
     print("\nTraining enhanced model...")
     model = create_enhanced_pipeline(args)
-    model.fit(x_train, y_train)
+    model.fit(x_train, train_heuristic, y_train)
 
     print("Evaluating model...")
-    val_metrics = evaluate(model, x_val, y_val)
-    test_metrics = evaluate(model, x_test, y_test)
+    val_metrics = evaluate_enhanced_model(model, x_val, val_heuristic, y_val)
+    test_metrics = evaluate_enhanced_model(model, x_test, test_heuristic, y_test)
 
     # Create report
     report = {
