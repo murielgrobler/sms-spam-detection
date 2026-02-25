@@ -226,9 +226,21 @@ def main() -> None:
         "test": test_metrics,
     }
 
-    # Save model
+    # Save model with metadata
     args.artifact_path.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(model, args.artifact_path)
+    
+    # Create model package with metadata
+    model_package = {
+        'model': model,
+        'metadata': {
+            'feature_names': get_feature_names(),
+            'model_version': '1.0.0',
+            'training_date': '2026-02-25',
+            'model_type': 'enhanced_tfidf_random_forest'
+        }
+    }
+    
+    joblib.dump(model_package, args.artifact_path)
 
     # Save report
     args.report_path.parent.mkdir(parents=True, exist_ok=True)
