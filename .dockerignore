@@ -1,0 +1,61 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+.env
+
+# Development files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Documentation
+*.md
+docs/
+
+# Data and reports (not needed in container)
+data/
+reports/
+
+# Training scripts (not needed for API)
+training/
+
+# Tests (not needed in production)
+tests/
+temp_load_model.py
+
+# Development requirements
+requirements-dev.txt
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*

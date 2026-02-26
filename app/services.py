@@ -6,13 +6,10 @@ import numpy as np
 import json
 import uuid
 from datetime import datetime
-import sys
 
 logger = logging.getLogger(__name__)
 
-# Import model class from training script
-sys.path.append(str(Path(__file__).parent.parent))
-from training.train_enhanced import EnhancedSpamPipeline
+# Model components are loaded directly from joblib artifacts
 
 class ModelService:
     """Service for loading and using the enhanced ML model"""

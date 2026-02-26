@@ -98,15 +98,23 @@ Deliverables
 app/main.py
 tests/test_api.py
 local run: uvicorn app.main:app
-Day 4: Dockerize + ECS Fargate deploy (core new-job readiness)
+Day 4: Dockerize + ECS Fargate deploy + Secrets Management (core new-job readiness)
 Dockerize FastAPI
 Push image to ECR
-ECS task definition + service
+ECS task definition + service with AWS Secrets Manager integration
+Secrets management:
+
+AWS Secrets Manager for sensitive configuration
+Environment variables for non-sensitive config
+Model registry credentials (S3 access)
+Database connection strings (future-proofing)
+API keys for external services
 Keep networking simple; add ALB only if necessary
 Deliverables
 
 Public endpoint (or at least reachable endpoint)
 deploy/deploy_notes.md with exact steps and rollback notes
+deploy/secrets_management.md (secrets strategy and rotation)
 Day 5: CI/CD (GitHub Actions)
 Pipeline:
 
@@ -151,48 +159,79 @@ Deliverables
 
 mlflow_notes.md
 "How to rollback model" section in README
-Day 8: Monitoring + drift + feedback loop (security flavor)
+Day 8: Performance Optimization + Scaling (Applied ML Engineering focus)
+Performance optimization:
+
+ThreadPoolExecutor for CPU-bound ML operations
+Async optimization for concurrent request handling
+Batch processing endpoint for efficient multi-message scoring
+Memory optimization and resource management
+Load testing & scaling:
+
+Load testing with locust/artillery (simulate 2k RPS)
+Latency percentile analysis (p50, p95, p99)
+ECS auto-scaling configuration and testing
+Horizontal scaling with multiple instances
+Performance monitoring:
+
+CPU utilization tracking
+Memory usage patterns
+Request queue depth monitoring
+Throughput vs latency trade-offs
+Deliverables
+
+performance/load_test.py (load testing scripts)
+performance/optimization_report.md (bottleneck analysis)
+Updated app/main.py with ThreadPoolExecutor
+ECS scaling policies and configuration
+Day 9: Production Monitoring + Drift Detection (Applied ML Engineering focus)
 Service monitoring:
 
-latency
-error rate
-request volume
+Real-time latency and throughput dashboards
+Error rate tracking and alerting
+Resource utilization monitoring (CPU, memory, network)
+Request queue depth and processing time
 Model monitoring:
 
-drift of risk_score distribution (PSI)
-drift in top TF‑IDF features frequency (optional—skip if time)
-Feedback loop:
+Prediction drift detection (PSI on risk_score distribution)
+Feature drift monitoring (heuristic feature frequency changes)
+Model performance degradation alerts
+A/B testing framework for model versions
+Feedback loop integration:
 
-/feedback writes a record you can later use to retrain (Day 9/10 optional)
+Automated retraining triggers based on feedback volume
+Data quality monitoring on incoming requests
+Performance regression detection
 Deliverables
 
-monitoring.md describing:
-what you monitor, why
-how you’d respond to drift
-how feedback becomes training data
-Day 9: SageMaker thin slice (optional but recommended)
-Since this is text ML, SageMaker is less “natural” than for tabular, but still doable:
+monitoring/dashboards.py (CloudWatch dashboard setup)
+monitoring/drift_detection.py (model drift monitoring)
+monitoring/alerts.yaml (alerting configuration)
+monitoring_strategy.md (comprehensive monitoring approach)
 
-Deploy the model as a SageMaker endpoint briefly
-Test, document, delete
-Deliverable
+Day 10: Modern AI Stack Evaluation (2026 Production Tools)
+Compare and implement multiple modern AI/LLM platforms:
 
-ecs_vs_sagemaker.md with a clear decision framework
-(If time is tight, you can swap this day for more monitoring/pipeline polish.)
-
-Day 10: LangSmith day (LLM triage summary + eval)
-Add an LLM endpoint:
-
-POST /triage-summary:
-input: message text + model score + tags
-output: short summary + recommended action (“block”, “send to review”, “allow”) Instrument with LangSmith:
-traces
-dataset of 10–20 messages
-compare two prompt versions
+LLMOps Platform Comparison:
+- PostHog: Product analytics + LLM observability integration
+- Braintrust: Evaluation-first approach with Loop AI agent
+- LangSmith: LangChain-native tracing and evaluation
+Agent Framework Evaluation:
+- CrewAI: Multi-agent collaboration system
+- AutoGen: Microsoft's enterprise multi-agent framework
+- LangGraph: State-based agent workflows
+Implementation:
+- Add LLM triage endpoint: POST /triage-summary
+- Integrate PostHog for user behavior + AI metrics
+- Compare evaluation approaches across platforms
+- A/B test different prompt strategies
 Deliverables
 
-LangSmith traces + a short eval report
-langsmith_notes.md (what you learned, how you’d use it in prod)
+ai_stack_comparison.md (comprehensive tool evaluation matrix)
+posthog_integration.py (analytics + LLM observability)
+triage_endpoint.py (LLM-powered message analysis)
+evaluation_report.md (platform comparison results)
+production_ai_recommendations.md (2026 tooling strategy)
 Daily shutdown checklist (do this every evening)
 ECS: scale service to 0 if not needed overnight
 SageMaker: delete endpoints / stop notebooks
