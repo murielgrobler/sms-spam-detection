@@ -52,14 +52,61 @@ This repo follows a 10-day ML engineering crash course plan to build an end-to-e
 
 ## Project Status
 
-- **AWS**: CLI configured, ECR repo created, Docker working, S3 model storage
+✅ **Production Deployment**: Live SMS Spam Detection API on AWS ECS Fargate  
+✅ **Public Endpoint**: https://sm-c8ad3b8c79064fe3a03635593d8d56a5.ecs.us-east-2.on.aws  
+✅ **Containerization**: Docker image with production-ready FastAPI service  
+✅ **Cloud Infrastructure**: ECS cluster with auto-scaling and load balancing  
+✅ **Model Integration**: Enhanced model with heuristic features deployed  
+✅ **Health Monitoring**: Comprehensive health checks and logging  
+
+**Development Progress**:
 - **Data**: processed CSV generated (5,572 messages: 87% ham, 13% spam)
 - **Splits**: leakage-safe train/val/test splits created (grouped by exact text)
 - **Baseline**: TF-IDF + Logistic Regression trained and evaluated (best performer)
 - **Feature Engineering**: 19 heuristic features implemented and tested
 - **Enhanced Model**: Random Forest + combined features (baseline still superior)
+- **FastAPI Service**: Production-ready API with /score, /feedback, /health endpoints
+- **AWS Deployment**: ECS Fargate with ECR, load balancer, and target groups
 
-## Setup
+## API Usage
+
+### Live Production API
+
+The SMS Spam Detection API is deployed and accessible at:
+**https://[your-deployment-url].ecs.us-east-2.on.aws**
+
+### Endpoints
+
+#### Health Check
+```bash
+curl https://[your-deployment-url].ecs.us-east-2.on.aws/health
+```
+
+#### Spam Detection
+```bash
+curl -X POST https://[your-deployment-url].ecs.us-east-2.on.aws/score \
+  -H "Content-Type: application/json" \
+  -d '{"text": "URGENT! Click here to claim your FREE prize NOW!", "message_id": "test-1"}'
+```
+
+Response:
+```json
+{
+  "risk_score": 0.62,
+  "is_threat": true,
+  "model_version": "enhanced_model.joblib",
+  "message_id": "test-1"
+}
+```
+
+#### Feedback Submission
+```bash
+curl -X POST https://[your-deployment-url].ecs.us-east-2.on.aws/feedback \
+  -H "Content-Type: application/json" \
+  -d '{"message_id": "test-1", "text": "Sample message", "true_label": "spam"}'
+```
+
+## Local Development Setup
 
 Create and activate a virtual environment:
 
@@ -68,6 +115,47 @@ python3 -m venv venv
 source venv/bin/activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
+```
+
+### Run API Locally
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Run with Docker
+```bash
+# Build image
+docker build -t sms-spam-api .
+
+# Run container
+docker run -d -p 8000:8000 --name sms-spam-test sms-spam-api
+
+# Test locally
+curl http://localhost:8000/health
+```
+
+## Testing
+
+### Run Test Suite
+```bash
+pytest tests/ -v
+```
+
+### Manual API Testing
+```bash
+# Test spam message
+curl -X POST https://[your-deployment-url].ecs.us-east-2.on.aws/score \
+  -H "Content-Type: application/json" \
+  -d '{"text": "URGENT! Click here to claim your FREE prize NOW!", "message_id": "test-spam"}'
+
+# Expected: {"risk_score": 0.62, "is_threat": true, ...}
+
+# Test legitimate message  
+curl -X POST https://[your-deployment-url].ecs.us-east-2.on.aws/score \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Hey, are we still meeting for lunch tomorrow?", "message_id": "test-ham"}'
+
+# Expected: {"risk_score": 0.0, "is_threat": false, ...}
 ```
 
 ## Data processing
@@ -117,6 +205,47 @@ Outputs:
 **Note**: Additional models from Day 1 comparison are also stored in S3:
 - Logistic Regression: `s3://sms-threat-demo-models-20260223/models/logistic-regression/v1.0/model.joblib`
 - Random Forest: `s3://sms-threat-demo-models-20260223/models/random-forest/v1.0/model.joblib`
+
+## AWS Deployment Architecture
+
+### Infrastructure Components
+
+- **ECS Cluster**: `sms-spam-cluster` (Fargate)
+- **ECS Service**: `sms-spam-detection-0636` 
+- **Task Definition**: Revision 3 with correct port 8000 configuration
+- **ECR Repository**: `[account-id].dkr.ecr.us-east-1.amazonaws.com/sms-spam-detection`
+- **Load Balancer**: Application Load Balancer with health checks on port 8000
+- **Public URL**: https://[your-deployment-url].ecs.us-east-2.on.aws
+
+### Deployment Process
+
+1. **Build and push Docker image**:
+```bash
+# Build for AMD64 platform (required for Fargate)
+docker buildx build --platform linux/amd64 -t sms-spam-api .
+
+# Tag for ECR
+docker tag sms-spam-api:latest [account-id].dkr.ecr.us-east-1.amazonaws.com/sms-spam-detection:latest
+
+# Authenticate with ECR
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin [account-id].dkr.ecr.us-east-1.amazonaws.com
+
+# Push to ECR
+docker push [account-id].dkr.ecr.us-east-1.amazonaws.com/sms-spam-detection:latest
+```
+
+2. **Deploy via ECS Console**:
+   - Create/update ECS service with Express Service feature
+   - Configure container port 8000
+   - Set health check path to `/health`
+   - Update target group health checks to port 8000
+
+### Key Configuration Notes
+
+- **Container Port**: 8000 (FastAPI default)
+- **Health Check Path**: `/health`
+- **Platform**: linux/amd64 (required for Fargate)
+- **Load Balancer**: Configured for port 8000 health checks
 
 ### Model Comparison
 
