@@ -89,3 +89,23 @@ jobs:
       run: |
         echo "Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
         echo "Latest URI: $ECR_REGISTRY/$ECR_REPOSITORY:latest"
+        
+    - name: Deploy to ECS
+      env:
+        ECS_CLUSTER: sms-spam-cluster
+        ECS_SERVICE: sms-spam-detection-0636
+      run: |
+        echo "Deploying new image to ECS..."
+        aws ecs update-service \
+          --cluster $ECS_CLUSTER \
+          --service $ECS_SERVICE \
+          --force-new-deployment \
+          --no-cli-pager
+        
+        echo "Waiting for deployment to stabilize..."
+        aws ecs wait services-stable \
+          --cluster $ECS_CLUSTER \
+          --services $ECS_SERVICE \
+          --no-cli-pager
+        
+        echo "Deployment completed successfully!"
