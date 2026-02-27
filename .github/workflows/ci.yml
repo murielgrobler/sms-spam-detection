@@ -105,11 +105,13 @@ jobs:
           --force-new-deployment \
           --no-cli-pager
         
-        echo "Waiting for deployment to stabilize..."
+        echo "Waiting for deployment to stabilize (max 15 minutes)..."
         aws ecs wait services-stable \
           --region $ECS_REGION \
           --cluster $ECS_CLUSTER \
           --services $ECS_SERVICE \
+          --cli-read-timeout 900 \
+          --cli-connect-timeout 60 \
           --no-cli-pager
         
         echo "Deployment completed successfully!"
