@@ -39,7 +39,11 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="SMS Spam Detection API",
+    title="""SMS Spam Detection API
+
+Production-ready FastAPI service for SMS spam detection with heuristic feature tagging.
+CI/CD Pipeline Test - Day 5
+""",
     description="Production-ready API for SMS spam detection with heuristic feature tagging",
     version=API_VERSION,
     docs_url="/docs",
