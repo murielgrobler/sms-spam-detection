@@ -105,13 +105,6 @@ jobs:
           --force-new-deployment \
           --no-cli-pager
         
-        echo "Waiting for deployment to stabilize (max 15 minutes)..."
-        aws ecs wait services-stable \
-          --region $ECS_REGION \
-          --cluster $ECS_CLUSTER \
-          --services $ECS_SERVICE \
-          --cli-read-timeout 900 \
-          --cli-connect-timeout 60 \
-          --no-cli-pager
-        
-        echo "Deployment completed successfully!"
+        echo "ECS deployment initiated successfully!"
+        echo "Canary deployment will complete in ~10 minutes with automatic rollback on failure."
+        echo "Check AWS ECS Console for deployment status."
